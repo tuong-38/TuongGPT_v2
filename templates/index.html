@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TuongGPT - Multi-User AI Platform</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- KaTeX -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+  
+  <!-- Marked Markdown -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+      display: flex; 
+      height: 100vh; 
+      background-color: #1e1e1e; 
+      color: #ececec; 
+      overflow: hidden; 
+    }
+
+    /* Sidebar */
+    #sidebar { 
+      width: 260px; 
+      background-color: #171717; 
+      display: flex; 
+      flex-direction: column; 
+      padding: 14px 12px; 
+      border-right: 1px solid #2a2a2a; 
+    }
+    .brand { 
+      font-size: 18px; 
+      font-weight: 700; 
+      margin-bottom: 15px; 
+      padding-left: 6px; 
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .new-chat-btn { 
+      background: transparent; 
+      color: #ececec; 
+      border: 1px solid #3a3a3a; 
+      padding: 10px 14px; 
+      border-radius: 8px; 
+      cursor: pointer; 
+      font-size: 13px; 
+      text-align: left; 
+      transition: 0.2s; 
+      display: flex; 
+      align-items: center; 
+      gap: 8px; 
+    }
+    .new-chat-btn:hover { 
+      background-color: #262626; 
+      border-color: #4a4a4a; 
+    }
+    .recent-title { 
+      font-size: 11px; 
+      font-weight: 600; 
+      color: #8e8e8e; 
+      margin: 20px 0 8px 6px; 
+      text-transform: uppercase; 
+      letter-spacing: 0.5px; 
+    }
+    #history-list { 
+      flex: 1; 
+      overflow-y: auto; 
+      display: flex; 
+      flex-direction: column; 
+      gap: 3px; 
+    }
+    .history-item { 
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between; 
+      padding: 9px 10px; 
+      border-radius: 8px; 
+      cursor: pointer; 
+      font-size: 13px; 
+      color: #b4b4b4; 
+      transition: 0.15s; 
+    }
+    .history-item:hover, .history-item.active { 
+      background-color: #262626; 
+      color: #fff; 
+    }
+    .history-item .title-text { 
+      flex: 1; 
+      white-space: nowrap; 
+      overflow: hidden; 
+      text-overflow: ellipsis; 
+      margin-right: 6px; 
+    }
+    .history-item .delete-btn { 
+      background: transparent; 
+      border: none; 
+      color: #777; 
+      font-size: 12px; 
+      cursor: pointer; 
+      display: none; 
+      padding: 4px 6px; 
+      border-radius: 4px; 
+      transition: 0.2s; 
+    }
+    .history-item:hover .delete-btn { 
+      display: inline-block; 
+    }
+    .history-item .delete-btn:hover { 
+      color: #ff5555; 
+      background-color: rgba(255, 85, 85, 0.15); 
+    }
+
+    /* User Profile Bar ở đáy Sidebar */
+    .user-profile-bar {
+      margin-top: auto;
+      padding: 10px;
+      border-top: 1px solid #2a2a2a;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+    }
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow: hidden;
+    }
+    .user-avatar {
+      width: 28px;
+      height: 28px;
+      background: #333;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .username-display {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 130px;
+    }
+    .logout-btn {
+      background: transparent;
+      border: none;
+      color: #888;
+      cursor: pointer;
+      font-size: 14px;
+      transition: 0.2s;
+    }
+    .logout-btn:hover {
+      color: #ff5555;
+    }
+
+    /* Main Area */
+    #main { 
+      flex: 1; 
+      display: flex; 
+      flex-direction: column; 
+      height: 100vh; 
+      position: relative; 
+    }
+    .top-header { 
+      padding: 16px 24px; 
+      font-size: 14px; 
+      font-weight: 600; 
+      color: #b4b4b4; 
+    }
+    #chat-scroll-area { 
+      flex: 1; 
+      overflow-y: auto; 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      padding: 20px 0; 
+    }
+    
+    #welcome-view { 
+      width: 100%; 
+      max-width: 760px; 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center; 
+      margin-top: 10vh; 
+      text-align: center; 
+    }
+    #welcome-view h1 { 
+      font-size: 32px; 
+      font-weight: 700; 
+      margin-bottom: 12px; 
+    }
+    #welcome-view p { 
+      color: #8e8e8e; 
+      font-size: 14px; 
+      margin-bottom: 32px; 
+    }
+    .prompt-grid { 
+      display: grid; 
+      grid-template-columns: 1fr 1fr; 
+      gap: 12px; 
+      width: 100%; 
+    }
+    .prompt-card { 
+      background: #262626; 
+      border: 1px solid #333; 
+      padding: 16px; 
+      border-radius: 12px; 
+      text-align: left; 
+      font-size: 13.5px; 
+      cursor: pointer; 
+      transition: 0.2s; 
+      color: #d1d1d1; 
+    }
+    .prompt-card:hover { 
+      background: #2e2e2e; 
+      border-color: #4a4a4a; 
+      color: #fff; 
+    }
+
+    #chat-box { 
+      width: 100%; 
+      max-width: 760px; 
+      display: none; 
+      flex-direction: column; 
+      gap: 22px; 
+      padding: 0 16px; 
+    }
+    .message { 
+      display: flex; 
+      flex-direction: column; 
+      width: 100%; 
+      font-size: 14.5px; 
+      line-height: 1.6; 
+    }
+    .message.user { 
+      align-self: flex-end; 
+      background-color: #2b2b2b; 
+      padding: 10px 16px; 
+      border-radius: 18px; 
+      max-width: 80%; 
+    }
+    .message.assistant { 
+      align-self: flex-start; 
+      color: #ececec; 
+      width: 100%; 
+    }
+    .message .sender { 
+      font-size: 11.5px; 
+      font-weight: 600; 
+      color: #7e7e7e; 
+      margin-bottom: 4px; 
+    }
+    .message .text { 
+      word-break: break-word; 
+    }
+    .message .text p { margin-bottom: 8px; }
+    .message .text p:last-child { margin-bottom: 0; }
+    .message .text ul, .message .text ol { margin-left: 20px; margin-bottom: 8px; }
+    .katex-display { margin: 10px 0 !important; overflow-x: auto; overflow-y: hidden; }
+
+    #input-container { 
+      width: 100%; 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      padding: 0 16px 20px 16px; 
+    }
+    .input-bar { 
+      width: 100%; 
+      max-width: 760px; 
+      background: #262626; 
+      border: 1px solid #3a3a3a; 
+      border-radius: 28px; 
+      display: flex; 
+      align-items: center; 
+      padding: 8px 14px; 
+      gap: 10px; 
+    }
+    .icon-btn { 
+      background: transparent; 
+      border: none; 
+      color: #8e8e8e; 
+      cursor: pointer; 
+      font-size: 16px; 
+      width: 34px; 
+      height: 34px; 
+      border-radius: 50%; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      transition: 0.2s; 
+    }
+    .icon-btn:hover { 
+      color: #fff; 
+      background: #333; 
+    }
+    .icon-btn.recording { 
+      color: #ff4b4b; 
+      background: rgba(255, 75, 75, 0.15); 
+      animation: pulse 1.2s infinite; 
+    }
+    @keyframes pulse { 
+      0% { transform: scale(1); } 
+      50% { transform: scale(1.1); } 
+      100% { transform: scale(1); } 
+    }
+
+    textarea { 
+      flex: 1; 
+      background: transparent; 
+      border: none; 
+      outline: none; 
+      color: #ececec; 
+      font-size: 14.5px; 
+      resize: none; 
+      height: 24px; 
+      max-height: 160px; 
+      line-height: 24px; 
+    }
+    .model-selector { 
+      background: #1e1e1e; 
+      border: 1px solid #3a3a3a; 
+      color: #d1d1d1; 
+      font-size: 12px; 
+      padding: 4px 8px; 
+      border-radius: 14px; 
+      outline: none; 
+      cursor: pointer; 
+    }
+    .send-btn { 
+      background: #fff; 
+      color: #000; 
+      border: none; 
+      width: 34px; 
+      height: 34px; 
+      border-radius: 50%; 
+      cursor: pointer; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      transition: 0.2s; 
+    }
+    .send-btn:hover { 
+      background: #e0e0e0; 
+    }
+
+    .footer-note { 
+      font-size: 11px; 
+      color: #666; 
+      margin-top: 8px; 
+      text-align: center; 
+    }
+
+    /* Modal Đăng nhập / Đăng ký */
+    #auth-modal {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0, 0, 0, 0.75);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    .auth-box {
+      background: #252525;
+      padding: 30px;
+      border-radius: 14px;
+      width: 100%;
+      max-width: 360px;
+      border: 1px solid #3a3a3a;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    }
+    .auth-box h2 {
+      font-size: 20px;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+    .auth-box p.subtitle {
+      font-size: 12px;
+      color: #888;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .auth-field {
+      margin-bottom: 14px;
+    }
+    .auth-field label {
+      display: block;
+      font-size: 12px;
+      color: #aaa;
+      margin-bottom: 6px;
+    }
+    .auth-field input {
+      width: 100%;
+      padding: 10px 12px;
+      background: #181818;
+      border: 1px solid #3a3a3a;
+      border-radius: 6px;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+    }
+    .auth-field input:focus {
+      border-color: #666;
+    }
+    .auth-submit-btn {
+      width: 100%;
+      padding: 10px;
+      background: #fff;
+      color: #000;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: 0.2s;
+    }
+    .auth-submit-btn:hover {
+      background: #e0e0e0;
+    }
+    .auth-toggle {
+      font-size: 12px;
+      color: #888;
+      text-align: center;
+      margin-top: 16px;
+      cursor: pointer;
+    }
+    .auth-toggle span {
+      color: #58a6ff;
+      text-decoration: underline;
+    }
+    .auth-error {
+      color: #ff5555;
+      font-size: 12px;
+      margin-top: 10px;
+      text-align: center;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <div class="brand">
+      <span>TuongGPT</span>
+    </div>
+    <button class="new-chat-btn" onclick="startNewChat()">
+      <i class="fa-solid fa-plus"></i> Cuộc trò chuyện mới
+    </button>
+    <div class="recent-title">Đoạn chat gần đây</div>
+    <div id="history-list"></div>
+
+    <!-- Thanh thông tin user -->
+    <div class="user-profile-bar">
+      <div class="user-info">
+        <div class="user-avatar" id="avatar-char">U</div>
+        <span class="username-display" id="user-display-name">User</span>
+      </div>
+      <button class="logout-btn" title="Đăng xuất" onclick="logout()">
+        <i class="fa-solid fa-right-from-bracket"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Area -->
+  <div id="main">
+    <div class="top-header">Agentic AI Chatbot</div>
+
+    <div id="chat-scroll-area">
+      <div id="welcome-view">
+        <h1>Tôi có thể giúp gì cho bạn hôm nay?</h1>
+        <p>Hỏi đáp công thức toán học, vật lý, tìm kiếm web và xử lý văn bản chuyên sâu.</p>
+        <div class="prompt-grid">
+          <div class="prompt-card" onclick="usePrompt('Giải thích hiện tượng nhiễu xạ ánh sáng và viết công thức toán học')">Hiện tượng nhiễu xạ ánh sáng</div>
+          <div class="prompt-card" onclick="usePrompt('Viết phương trình sóng điện từ và giải thích từng đại lượng')">Phương trình sóng điện từ</div>
+          <div class="prompt-card" onclick="usePrompt('Hãy tóm tắt tài liệu tôi vừa tải lên')">Tóm tắt tài liệu đã tải lên</div>
+          <div class="prompt-card" onclick="usePrompt('Tính giá trị biểu thức: 125 * 48 / 6')">Sử dụng công cụ tính toán</div>
+        </div>
+      </div>
+
+      <div id="chat-box"></div>
+    </div>
+
+    <!-- Dock nhập liệu -->
+    <div id="input-container">
+      <div class="input-bar">
+        <input type="file" id="file-upload" style="display: none;" onchange="uploadRAGFile()">
+        <button class="icon-btn" title="Đính kèm file RAG" onclick="document.getElementById('file-upload').click()">
+          <i class="fa-solid fa-paperclip"></i>
+        </button>
+
+        <textarea id="prompt-input" rows="1" placeholder="Hỏi bất kỳ điều gì..." onkeydown="handleKeyDown(event)"></textarea>
+
+        <select id="model-select" class="model-selector">
+          <option value="gemini-3.5-flash-lite" selected>3.5 Flash-Lite (Siêu tốc)</option>
+          <option value="gemini-3.6-flash">3.6 Flash (Ổn định)</option>
+          <option value="gemini-3.7-flash">3.7 Flash (Mạnh mẽ, Toàn diện)</option>
+        </select>
+
+        <button class="icon-btn" id="mic-btn" title="Nhập bằng giọng nói" onclick="toggleSpeechRecognition()">
+          <i class="fa-solid fa-microphone"></i>
+        </button>
+
+        <button class="send-btn" title="Gửi tin nhắn" onclick="sendMessage()">
+          <i class="fa-solid fa-arrow-up"></i>
+        </button>
+      </div>
+      <div class="footer-note" id="status-bar">TuongGPT có thể mắc lỗi. Hãy kiểm tra thông tin quan trọng.</div>
+    </div>
+  </div>
+
+  <!-- Modal Đăng nhập / Đăng ký ẩn danh -->
+  <div id="auth-modal">
+    <div class="auth-box">
+      <h2 id="auth-title">Đăng nhập</h2>
+      <p class="subtitle">Bảo mật tuyệt đối • Không thu thập dữ liệu cá nhân</p>
+
+      <div class="auth-field">
+        <label>Tên định danh (Username)</label>
+        <input type="text" id="auth-username" placeholder="Nhập tên của bạn...">
+      </div>
+
+      <div class="auth-field">
+        <label>Mật khẩu</label>
+        <input type="password" id="auth-password" placeholder="Nhập mật khẩu...">
+      </div>
+
+      <button class="auth-submit-btn" id="auth-submit-btn" onclick="submitAuth()">Tiếp tục</button>
+      <div class="auth-error" id="auth-error"></div>
+
+      <div class="auth-toggle" onclick="toggleAuthMode()">
+        <span id="auth-toggle-text">Chưa có tài khoản? Đăng ký ngay</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let isRegisterMode = false;
+    let token = localStorage.getItem("tuonggpt_token");
+    let currentUsername = localStorage.getItem("tuonggpt_username") || "";
+    let currentThreadId = localStorage.getItem("tuonggpt_thread_id") || crypto.randomUUID();
+    let recognition = null;
+    let isRecording = false;
+
+    window.onload = () => {
+      checkAuth();
+      initSpeechRecognition();
+    };
+
+    /* --- Quản lý Xác thực & Token --- */
+    function checkAuth() {
+      if (!token) {
+        showAuthModal(false);
+      } else {
+        document.getElementById("auth-modal").style.display = "none";
+        document.getElementById("user-display-name").innerText = currentUsername;
+        document.getElementById("avatar-char").innerText = (currentUsername[0] || "U").toUpperCase();
+        loadConversations();
+        loadHistory(currentThreadId);
+      }
+    }
+
+    function showAuthModal(register = false) {
+      isRegisterMode = register;
+      document.getElementById("auth-modal").style.display = "flex";
+      document.getElementById("auth-title").innerText = isRegisterMode ? "Đăng ký tài khoản" : "Đăng nhập";
+      document.getElementById("auth-toggle-text").innerText = isRegisterMode ? "Đã có tài khoản? Đăng nhập" : "Chưa có tài khoản? Đăng ký ngay";
+      document.getElementById("auth-error").style.display = "none";
+    }
+
+    function toggleAuthMode() {
+      showAuthModal(!isRegisterMode);
+    }
+
+    async function submitAuth() {
+      const username = document.getElementById("auth-username").value.trim();
+      const password = document.getElementById("auth-password").value.trim();
+      const errBox = document.getElementById("auth-error");
+
+      if (!username || !password) {
+        errBox.innerText = "Vui lòng nhập đầy đủ thông tin.";
+        errBox.style.display = "block";
+        return;
+      }
+
+      const endpoint = isRegisterMode ? "/api/auth/register" : "/api/auth/login";
+      try {
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          errBox.innerText = data.detail || "Có lỗi xảy ra.";
+          errBox.style.display = "block";
+          return;
+        }
+
+        // Lưu thông tin phiên
+        token = data.access_token;
+        currentUsername = data.username;
+        localStorage.setItem("tuonggpt_token", token);
+        localStorage.setItem("tuonggpt_username", currentUsername);
+
+        checkAuth();
+      } catch (err) {
+        errBox.innerText = "Lỗi kết nối máy chủ.";
+        errBox.style.display = "block";
+      }
+    }
+
+    function logout() {
+      if (!confirm("Bạn có chắc chắn muốn đăng xuất không?")) return;
+      localStorage.removeItem("tuonggpt_token");
+      localStorage.removeItem("tuonggpt_username");
+      localStorage.removeItem("tuonggpt_thread_id");
+      location.reload();
+    }
+
+    /* --- Quản lý Hội thoại --- */
+    function startNewChat() {
+      currentThreadId = crypto.randomUUID();
+      localStorage.setItem("tuonggpt_thread_id", currentThreadId);
+      document.getElementById("welcome-view").style.display = "flex";
+      document.getElementById("chat-box").style.display = "none";
+      document.getElementById("chat-box").innerHTML = "";
+      loadConversations();
+    }
+
+    function usePrompt(text) {
+      document.getElementById("prompt-input").value = text;
+      sendMessage();
+    }
+
+    async function loadConversations() {
+      try {
+        const res = await fetch("/api/conversations", {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (res.status === 401) return logout();
+
+        const data = await res.json();
+        const list = document.getElementById("history-list");
+        list.innerHTML = "";
+
+        data.forEach(item => {
+          const div = document.createElement("div");
+          div.className = "history-item" + (item.thread_id === currentThreadId ? " active" : "");
+
+          const titleSpan = document.createElement("span");
+          titleSpan.className = "title-text";
+          titleSpan.innerText = item.title;
+          titleSpan.onclick = () => {
+            currentThreadId = item.thread_id;
+            localStorage.setItem("tuonggpt_thread_id", currentThreadId);
+            loadConversations();
+            loadHistory(currentThreadId);
+          };
+
+          const delBtn = document.createElement("button");
+          delBtn.className = "delete-btn";
+          delBtn.title = "Xóa đoạn chat";
+          delBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
+          delBtn.onclick = (e) => {
+            e.stopPropagation();
+            deleteChat(item.thread_id);
+          };
+
+          div.appendChild(titleSpan);
+          div.appendChild(delBtn);
+          list.appendChild(div);
+        });
+      } catch (err) {
+        console.error("Lỗi khi tải danh sách hội thoại:", err);
+      }
+    }
+
+    async function deleteChat(threadId) {
+      if (!confirm("Bạn có chắc chắn muốn xóa vĩnh viễn đoạn chat này?")) return;
+      try {
+        const res = await fetch(`/api/conversations/${threadId}`, { 
+          method: "DELETE",
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        const result = await res.json();
+        if (result.status === "success") {
+          if (threadId === currentThreadId) {
+            startNewChat();
+          } else {
+            loadConversations();
+          }
+        }
+      } catch (err) {
+        console.error("Lỗi xóa hội thoại:", err);
+      }
+    }
+
+    async function loadHistory(threadId) {
+      try {
+        const res = await fetch(`/api/chat-history/${threadId}`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (res.status === 401) return logout();
+
+        const messages = await res.json();
+        const chatBox = document.getElementById("chat-box");
+        const welcomeView = document.getElementById("welcome-view");
+
+        if (messages.length > 0) {
+          welcomeView.style.display = "none";
+          chatBox.style.display = "flex";
+          chatBox.innerHTML = "";
+          messages.forEach(msg => appendMessageUI(msg.role, msg.content, true));
+          scrollToBottom();
+        } else {
+          welcomeView.style.display = "flex";
+          chatBox.style.display = "none";
+        }
+      } catch (err) {
+        console.error("Lỗi tải lịch sử chat:", err);
+      }
+    }
+
+    /* --- Render Markdown & KaTeX --- */
+    function renderFormattedContent(element, rawText) {
+      if (typeof marked !== "undefined") {
+        element.innerHTML = marked.parse(rawText);
+      } else {
+        element.innerText = rawText;
+      }
+
+      if (typeof renderMathInElement !== "undefined") {
+        renderMathInElement(element, {
+          delimiters: [
+            {left: '$$', right: '$$', display: true},
+            {left: '$', right: '$', display: false}
+          ],
+          throwOnError: false
+        });
+      }
+    }
+
+    function appendMessageUI(role, content, shouldRenderMath = false) {
+      document.getElementById("welcome-view").style.display = "none";
+      const chatBox = document.getElementById("chat-box");
+      chatBox.style.display = "flex";
+
+      const msgDiv = document.createElement("div");
+      msgDiv.className = `message ${role}`;
+      msgDiv.innerHTML = `<div class="sender">${role === "user" ? (currentUsername || "Bạn") : "TuongGPT"}</div><div class="text"></div>`;
+      chatBox.appendChild(msgDiv);
+      
+      const textContainer = msgDiv.querySelector(".text");
+      if (shouldRenderMath) {
+        renderFormattedContent(textContainer, content);
+      } else {
+        textContainer.innerText = content;
+      }
+
+      scrollToBottom();
+      return textContainer;
+    }
+
+    function scrollToBottom() {
+      const area = document.getElementById("chat-scroll-area");
+      area.scrollTop = area.scrollHeight;
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+      }
+    }
+
+    /* --- Chat Streaming (SSE) --- */
+    async function sendMessage() {
+      if (!token) return showAuthModal(false);
+
+      const input = document.getElementById("prompt-input");
+      const text = input.value.trim();
+      if (!text) return;
+
+      input.value = "";
+      appendMessageUI("user", text, false);
+
+      const model = document.getElementById("model-select").value;
+      const textNode = appendMessageUI("assistant", "", false);
+      let accumulatedText = "";
+
+      const url = `/api/chat-stream?thread_id=${encodeURIComponent(currentThreadId)}&message=${encodeURIComponent(text)}&model_name=${encodeURIComponent(model)}&token=${encodeURIComponent(token)}`;
+      const eventSource = new EventSource(url);
+
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.chunk) {
+            accumulatedText += data.chunk;
+            textNode.innerText = accumulatedText;
+            scrollToBottom();
+          }
+          if (data.done || data.error) {
+            eventSource.close();
+            renderFormattedContent(textNode, accumulatedText);
+            scrollToBottom();
+            loadConversations();
+          }
+        } catch (e) {
+          console.error("Lỗi parse SSE:", e);
+        }
+      };
+
+      eventSource.onerror = () => {
+        eventSource.close();
+        renderFormattedContent(textNode, accumulatedText);
+      };
+    }
+
+    /* --- Web Speech API --- */
+    function initSpeechRecognition() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        document.getElementById("mic-btn").style.display = "none";
+        return;
+      }
+
+      recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.lang = "vi-VN";
+
+      recognition.onstart = () => {
+        isRecording = true;
+        document.getElementById("mic-btn").classList.add("recording");
+        document.getElementById("status-bar").innerText = "Đang lắng nghe giọng nói...";
+      };
+
+      recognition.onresult = (event) => {
+        let transcript = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        document.getElementById("prompt-input").value = transcript;
+      };
+
+      recognition.onerror = () => stopSpeechRecognition();
+      recognition.onend = () => stopSpeechRecognition();
+    }
+
+    function toggleSpeechRecognition() {
+      if (!recognition) return;
+      if (isRecording) {
+        recognition.stop();
+      } else {
+        recognition.start();
+      }
+    }
+
+    function stopSpeechRecognition() {
+      isRecording = false;
+      document.getElementById("mic-btn").classList.remove("recording");
+      document.getElementById("status-bar").innerText = "TuongGPT có thể mắc lỗi. Hãy kiểm tra thông tin quan trọng.";
+    }
+
+    /* --- RAG File Upload --- */
+    async function uploadRAGFile() {
+      if (!token) return showAuthModal(false);
+
+      const fileInput = document.getElementById("file-upload");
+      if (!fileInput.files.length) return;
+
+      const statusBar = document.getElementById("status-bar");
+      statusBar.innerText = `Đang tải và xử lý: ${fileInput.files[0].name}...`;
+
+      const formData = new FormData();
+      formData.append("file", fileInput.files[0]);
+      formData.append("thread_id", currentThreadId);
+
+      try {
+        const res = await fetch("/api/upload", { 
+          method: "POST", 
+          headers: { "Authorization": `Bearer ${token}` },
+          body: formData 
+        });
+        const result = await res.json();
+        if (result.status === "success") {
+          statusBar.innerText = `Đã nạp file thành công: ${result.data.filename} (${result.data.chunks} chunks)`;
+        } else {
+          statusBar.innerText = `Lỗi nạp file: ${result.message}`;
+        }
+      } catch (err) {
+        statusBar.innerText = "Lỗi kết nối máy chủ khi tải tệp.";
+      }
+      fileInput.value = "";
+    }
+  </script>
+</body>
+</html>
