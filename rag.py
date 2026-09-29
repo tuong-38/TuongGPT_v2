@@ -1,4 +1,5 @@
 import os
+import time
 from pathlib import Path
 from typing import List
 
@@ -21,7 +22,7 @@ Path("uploads").mkdir(exist_ok=True)
 Path("chroma_db").mkdir(exist_ok=True)
 
 # Khởi tạo mô hình Embedding của Google
-embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+embeddings = GoogleGenerativeAIEmbeddings(model="gemini-embedding-001")
 
 vectorstore = Chroma(
     collection_name="tuonggpt_rag_docs",
@@ -51,13 +52,14 @@ def read_file_text(file_path: str) -> str:
 
 
 def add_document_to_rag(file_path: str, user_id: str, thread_id: str):
-    """Cắt đoạn và gán metadata user_id + thread_id vào từng chunk."""
+    """Cắt đoạn và gán metadata user_id + thread_id vào từng chunk kèm cơ chế chống nghẽn Quota."""
     text = read_file_text(file_path)
     if not text.strip():
         raise ValueError("Không thể trích xuất văn bản từ tệp này.")
 
+    # 1. Tăng chunk_size từ 900 lên 1800 để giảm số lượng request gửi lên Google
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=900,
+        chunk_size=1800,
         chunk_overlap=150
     )
     chunks = splitter.split_text(text)
@@ -74,12 +76,18 @@ def add_document_to_rag(file_path: str, user_id: str, thread_id: str):
         for chunk in chunks
     ]
 
-    vectorstore.add_documents(docs)
+    # 2. Cơ chế nạp theo từng đợt (Batching) để tránh lỗi 429 Resource Exhausted
+    batch_size = 15  # Mỗi đợt nhúng 15 chunks
+    for i in range(0, len(docs), batch_size):
+        batch = docs[i:i + batch_size]
+        vectorstore.add_documents(batch)
+        if i + batch_size < len(docs):
+            time.sleep(2)  # Dừng 2 giây giữa mỗi đợt để hồi quota
+
     return {
         "filename": Path(file_path).name,
         "chunks": len(docs)
     }
-
 
 def retrieve_from_rag(query: str, user_id: str, thread_id: str, k: int = 4) -> str:
     """Retrieve RAG follow User and Thread."""

@@ -216,3 +216,23 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Tệp môi trường & cấu hình nhạy cảm
+.env
+.env.*
+!.env.example
+
+# Vector DB & Tệp tải lên tạm thời
+chroma_db/
+uploads/
+
+# File chạy test tạm
+test_embed.py
+test_auth.py
+
+# Python cache & IDE
+__pycache__/
+*.pyc
+venv/
+.vscode/
+.idea/

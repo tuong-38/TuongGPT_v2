@@ -117,7 +117,7 @@
       background-color: rgba(255, 85, 85, 0.15); 
     }
 
-    /* User Profile Bar ở đáy Sidebar */
+    /* Thanh hồ sơ user ở chân Sidebar */
     .user-profile-bar {
       margin-top: auto;
       padding: 10px;
@@ -162,7 +162,7 @@
       color: #ff5555;
     }
 
-    /* Main Area */
+    /* Khung trò chuyện chính */
     #main { 
       flex: 1; 
       display: flex; 
@@ -267,6 +267,14 @@
     .message .text p { margin-bottom: 8px; }
     .message .text p:last-child { margin-bottom: 0; }
     .message .text ul, .message .text ol { margin-left: 20px; margin-bottom: 8px; }
+    .message .msg-image-thumb {
+      max-width: 240px;
+      max-height: 200px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      display: block;
+      border: 1px solid #444;
+    }
     .katex-display { margin: 10px 0 !important; overflow-x: auto; overflow-y: hidden; }
 
     #input-container { 
@@ -276,6 +284,41 @@
       align-items: center; 
       padding: 0 16px 20px 16px; 
     }
+
+    /* Xem trước ảnh đính kèm */
+    #image-preview-container {
+      display: none;
+      width: 100%;
+      max-width: 760px;
+      margin-bottom: 8px;
+    }
+    .preview-box {
+      position: relative;
+      display: inline-block;
+    }
+    .preview-box img {
+      max-height: 75px;
+      border-radius: 8px;
+      border: 1px solid #444;
+      display: block;
+    }
+    .preview-box .close-btn {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      background: #ff4b4b;
+      border: none;
+      color: #fff;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      font-size: 11px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
     .input-bar { 
       width: 100%; 
       max-width: 760px; 
@@ -462,7 +505,6 @@
     <div class="recent-title">Đoạn chat gần đây</div>
     <div id="history-list"></div>
 
-    <!-- Thanh thông tin user -->
     <div class="user-profile-bar">
       <div class="user-info">
         <div class="user-avatar" id="avatar-char">U</div>
@@ -474,19 +516,19 @@
     </div>
   </div>
 
-  <!-- Main Area -->
+  <!-- Main Chat Area -->
   <div id="main">
     <div class="top-header">Agentic AI Chatbot</div>
 
     <div id="chat-scroll-area">
       <div id="welcome-view">
         <h1>Tôi có thể giúp gì cho bạn hôm nay?</h1>
-        <p>Hỏi đáp công thức toán học, vật lý, tìm kiếm web và xử lý văn bản chuyên sâu.</p>
+        <p>Hỏi đáp công thức toán học, vật lý, nhận diện ảnh, tìm kiếm web và tóm tắt tài liệu.</p>
         <div class="prompt-grid">
-          <div class="prompt-card" onclick="usePrompt('Giải thích hiện tượng nhiễu xạ ánh sáng và viết công thức toán học')">Hiện tượng nhiễu xạ ánh sáng</div>
+          <div class="prompt-card" onclick="usePrompt('Giải thích hiện tượng quang điện ngoài và viết công thức Anh-xtanh')">Hiện tượng quang điện & Công thức</div>
           <div class="prompt-card" onclick="usePrompt('Viết phương trình sóng điện từ và giải thích từng đại lượng')">Phương trình sóng điện từ</div>
-          <div class="prompt-card" onclick="usePrompt('Hãy tóm tắt tài liệu tôi vừa tải lên')">Tóm tắt tài liệu đã tải lên</div>
-          <div class="prompt-card" onclick="usePrompt('Tính giá trị biểu thức: 125 * 48 / 6')">Sử dụng công cụ tính toán</div>
+          <div class="prompt-card" onclick="usePrompt('Hãy tóm tắt nội dung chính của tài liệu tôi vừa đính kèm')">Tóm tắt tài liệu RAG đã nạp</div>
+          <div class="prompt-card" onclick="usePrompt('Tính giá trị biểu thức: (450 * 12) / 15 + math.sqrt(144)')">Sử dụng công cụ tính toán</div>
         </div>
       </div>
 
@@ -495,13 +537,23 @@
 
     <!-- Dock nhập liệu -->
     <div id="input-container">
+      <!-- Khung xem trước ảnh đính kèm -->
+      <div id="image-preview-container">
+        <div class="preview-box">
+          <img id="image-preview" src="">
+          <button class="close-btn" title="Gỡ ảnh" onclick="clearSelectedImage()">✕</button>
+        </div>
+      </div>
+
       <div class="input-bar">
-        <input type="file" id="file-upload" style="display: none;" onchange="uploadRAGFile()">
-        <button class="icon-btn" title="Đính kèm file RAG" onclick="document.getElementById('file-upload').click()">
+        <!-- Chấp nhận cả tài liệu lẫn hình ảnh -->
+        <input type="file" id="file-upload" accept=".pdf,.docx,.txt,.md,.png,.jpg,.jpeg,.webp" style="display: none;" onchange="handleFileSelect()">
+        
+        <button class="icon-btn" title="Đính kèm tệp hoặc ảnh" onclick="document.getElementById('file-upload').click()">
           <i class="fa-solid fa-paperclip"></i>
         </button>
 
-        <textarea id="prompt-input" rows="1" placeholder="Hỏi bất kỳ điều gì..." onkeydown="handleKeyDown(event)"></textarea>
+        <textarea id="prompt-input" rows="1" placeholder="Hỏi bất kỳ điều gì hoặc đính kèm ảnh/tài liệu..." onkeydown="handleKeyDown(event)"></textarea>
 
         <select id="model-select" class="model-selector">
           <option value="gemini-3.5-flash-lite" selected>3.5 Flash-Lite (Siêu tốc)</option>
@@ -521,7 +573,7 @@
     </div>
   </div>
 
-  <!-- Modal Đăng nhập / Đăng ký ẩn danh -->
+  <!-- Modal Đăng nhập / Đăng ký -->
   <div id="auth-modal">
     <div class="auth-box">
       <h2 id="auth-title">Đăng nhập</h2>
@@ -529,7 +581,7 @@
 
       <div class="auth-field">
         <label>Tên định danh (Username)</label>
-        <input type="text" id="auth-username" placeholder="Nhập tên của bạn...">
+        <input type="text" id="auth-username" placeholder="Nhập tên đăng nhập...">
       </div>
 
       <div class="auth-field">
@@ -553,6 +605,10 @@
     let currentThreadId = localStorage.getItem("tuonggpt_thread_id") || crypto.randomUUID();
     let recognition = null;
     let isRecording = false;
+
+    // Biến lưu trạng thái hình ảnh đã tải lên server
+    let uploadedImagePath = null;
+    let previewImageBase64 = null;
 
     window.onload = () => {
       checkAuth();
@@ -610,7 +666,6 @@
           return;
         }
 
-        // Lưu thông tin phiên
         token = data.access_token;
         currentUsername = data.username;
         localStorage.setItem("tuonggpt_token", token);
@@ -638,6 +693,7 @@
       document.getElementById("welcome-view").style.display = "flex";
       document.getElementById("chat-box").style.display = "none";
       document.getElementById("chat-box").innerHTML = "";
+      clearSelectedImage();
       loadConversations();
     }
 
@@ -754,7 +810,7 @@
       }
     }
 
-    function appendMessageUI(role, content, shouldRenderMath = false) {
+    function appendMessageUI(role, content, shouldRenderMath = false, attachedImage = null) {
       document.getElementById("welcome-view").style.display = "none";
       const chatBox = document.getElementById("chat-box");
       chatBox.style.display = "flex";
@@ -765,10 +821,23 @@
       chatBox.appendChild(msgDiv);
       
       const textContainer = msgDiv.querySelector(".text");
-      if (shouldRenderMath) {
-        renderFormattedContent(textContainer, content);
-      } else {
-        textContainer.innerText = content;
+
+      // Nếu có ảnh hiển thị đính kèm
+      if (attachedImage) {
+        const imgEl = document.createElement("img");
+        imgEl.src = attachedImage;
+        imgEl.className = "msg-image-thumb";
+        textContainer.appendChild(imgEl);
+      }
+
+      if (content) {
+        const spanText = document.createElement("div");
+        if (shouldRenderMath) {
+          renderFormattedContent(spanText, content);
+        } else {
+          spanText.innerText = content;
+        }
+        textContainer.appendChild(spanText);
       }
 
       scrollToBottom();
@@ -787,22 +856,114 @@
       }
     }
 
+    /* --- Xử lý Tải File & Nhận diện Hình ảnh --- */
+    async function handleFileSelect() {
+      const fileInput = document.getElementById("file-upload");
+      if (!fileInput.files.length) return;
+      const file = fileInput.files[0];
+
+      // Nếu là ảnh -> Gọi API upload ảnh riêng để lấy file_path
+      if (file.type.startsWith("image/")) {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const statusBar = document.getElementById("status-bar");
+        statusBar.innerText = `Đang tải ảnh: ${file.name}...`;
+
+        try {
+          const res = await fetch("/api/upload-image", {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${token}` },
+            body: formData
+          });
+          const data = await res.json();
+          if (data.status === "success") {
+            uploadedImagePath = data.file_path;
+            
+            // Đọc Base64 chỉ để hiển thị ảnh preview giao diện
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              previewImageBase64 = e.target.result;
+              document.getElementById("image-preview").src = previewImageBase64;
+              document.getElementById("image-preview-container").style.display = "block";
+            };
+            reader.readAsDataURL(file);
+
+            statusBar.innerText = `Đã chọn ảnh: ${file.name}. Bạn có thể nhập câu hỏi và nhấn gửi.`;
+          } else {
+            statusBar.innerText = "Tải ảnh thất bại.";
+          }
+        } catch (e) {
+          statusBar.innerText = "Lỗi kết nối khi tải ảnh.";
+        }
+        fileInput.value = "";
+      } else {
+        // Nếu là tài liệu PDF/DOCX/TXT -> nạp vào RAG
+        uploadRAGFile(file);
+      }
+    }
+
+    function clearSelectedImage() {
+      uploadedImagePath = null;
+      previewImageBase64 = null;
+      document.getElementById("image-preview").src = "";
+      document.getElementById("image-preview-container").style.display = "none";
+      document.getElementById("status-bar").innerText = "TuongGPT có thể mắc lỗi. Hãy kiểm tra thông tin quan trọng.";
+    }
+
+    async function uploadRAGFile(file) {
+      if (!token) return showAuthModal(false);
+
+      const statusBar = document.getElementById("status-bar");
+      statusBar.innerText = `Đang xử lý tài liệu RAG: ${file.name}...`;
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("thread_id", currentThreadId);
+
+      try {
+        const res = await fetch("/api/upload", { 
+          method: "POST", 
+          headers: { "Authorization": `Bearer ${token}` },
+          body: formData 
+        });
+        const result = await res.json();
+        if (result.status === "success") {
+          statusBar.innerText = `Nạp tài liệu thành công: ${result.data.filename} (${result.data.chunks} chunks)`;
+        } else {
+          statusBar.innerText = `Lỗi nạp file: ${result.message}`;
+        }
+      } catch (err) {
+        statusBar.innerText = "Lỗi kết nối máy chủ khi nạp tệp.";
+      }
+      document.getElementById("file-upload").value = "";
+    }
+
     /* --- Chat Streaming (SSE) --- */
     async function sendMessage() {
       if (!token) return showAuthModal(false);
 
       const input = document.getElementById("prompt-input");
       const text = input.value.trim();
-      if (!text) return;
+      const currentImgPath = uploadedImagePath;
+      const currentImgPreview = previewImageBase64;
+
+      if (!text && !currentImgPath) return;
 
       input.value = "";
-      appendMessageUI("user", text, false);
+      clearSelectedImage();
+
+      appendMessageUI("user", text, false, currentImgPreview);
 
       const model = document.getElementById("model-select").value;
       const textNode = appendMessageUI("assistant", "", false);
       let accumulatedText = "";
 
-      const url = `/api/chat-stream?thread_id=${encodeURIComponent(currentThreadId)}&message=${encodeURIComponent(text)}&model_name=${encodeURIComponent(model)}&token=${encodeURIComponent(token)}`;
+      let url = `/api/chat-stream?thread_id=${encodeURIComponent(currentThreadId)}&message=${encodeURIComponent(text)}&model_name=${encodeURIComponent(model)}&token=${encodeURIComponent(token)}`;
+      if (currentImgPath) {
+        url += `&image_path=${encodeURIComponent(currentImgPath)}`;
+      }
+
       const eventSource = new EventSource(url);
 
       eventSource.onmessage = (event) => {
@@ -830,7 +991,7 @@
       };
     }
 
-    /* --- Web Speech API --- */
+    /* --- Web Speech API (Microphone) --- */
     function initSpeechRecognition() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) {
@@ -874,38 +1035,6 @@
       isRecording = false;
       document.getElementById("mic-btn").classList.remove("recording");
       document.getElementById("status-bar").innerText = "TuongGPT có thể mắc lỗi. Hãy kiểm tra thông tin quan trọng.";
-    }
-
-    /* --- RAG File Upload --- */
-    async function uploadRAGFile() {
-      if (!token) return showAuthModal(false);
-
-      const fileInput = document.getElementById("file-upload");
-      if (!fileInput.files.length) return;
-
-      const statusBar = document.getElementById("status-bar");
-      statusBar.innerText = `Đang tải và xử lý: ${fileInput.files[0].name}...`;
-
-      const formData = new FormData();
-      formData.append("file", fileInput.files[0]);
-      formData.append("thread_id", currentThreadId);
-
-      try {
-        const res = await fetch("/api/upload", { 
-          method: "POST", 
-          headers: { "Authorization": `Bearer ${token}` },
-          body: formData 
-        });
-        const result = await res.json();
-        if (result.status === "success") {
-          statusBar.innerText = `Đã nạp file thành công: ${result.data.filename} (${result.data.chunks} chunks)`;
-        } else {
-          statusBar.innerText = `Lỗi nạp file: ${result.message}`;
-        }
-      } catch (err) {
-        statusBar.innerText = "Lỗi kết nối máy chủ khi tải tệp.";
-      }
-      fileInput.value = "";
     }
   </script>
 </body>

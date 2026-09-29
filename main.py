@@ -1,7 +1,9 @@
+import base64
 import json
 import os
 import shutil
 import time
+import uuid
 from pathlib import Path
 from typing import Optional
 
@@ -44,6 +46,7 @@ app = FastAPI(title="TuongGPT Multi-tenant API")
 templates = Jinja2Templates(directory="templates")
 
 Path("uploads").mkdir(exist_ok=True)
+Path("uploads/images").mkdir(parents=True, exist_ok=True)
 Path("templates").mkdir(exist_ok=True)
 
 
@@ -70,7 +73,7 @@ def get_user_from_token_str(token: str, db: Session) -> User:
 
 
 def extract_text_content(content) -> str:
-    """Extract the plain text string from the LangChain/Gemini content."""
+    """Trích xuất chuỗi văn bản thuần túy từ content của LangChain/Gemini."""
     if isinstance(content, str):
         return content
     if isinstance(content, list):
@@ -164,11 +167,26 @@ async def api_upload_file(
         shutil.copyfileobj(file.file, buffer)
 
     try:
-        # Cách ly tệp nạp theo cả user_id và thread_id
         result = add_document_to_rag(str(save_path), str(current_user.id), thread_id)
         return {"status": "success", "data": result}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+
+@app.post("/api/upload-image")
+async def api_upload_image(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    """Lưu trữ tạm ảnh upload của user để chuẩn bị phân tích đa phương thức."""
+    save_dir = Path("uploads") / "images"
+    save_dir.mkdir(parents=True, exist_ok=True)
+    file_path = save_dir / f"{uuid.uuid4()}_{file.filename}"
+
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    return {"status": "success", "file_path": str(file_path)}
 
 
 # ==================== LUỒNG TRUYỀN PHÁT SSE STREAM ====================
@@ -178,10 +196,10 @@ def api_chat_stream(
     thread_id: str,
     message: str,
     token: str = Query(...),
+    image_path: Optional[str] = Query(None),
     model_name: str = "gemini-3.5-flash-lite",
     db: Session = Depends(get_db)
 ):
-    # Xác thực token từ query parameter của EventSource
     user = get_user_from_token_str(token, db)
     user_id_str = str(user.id)
 
@@ -189,7 +207,6 @@ def api_chat_stream(
     save_chat_message(user_id_str, thread_id, role="user", content=message)
 
     agent = get_agent(model_name)
-    # Truyền context an toàn qua LangGraph config, loại bỏ triệt để biến toàn cục
     config = {
         "configurable": {
             "thread_id": thread_id,
@@ -197,11 +214,29 @@ def api_chat_stream(
         }
     }
 
+    # Đóng gói ngữ cảnh đa phương thức (Multimodal) nếu có ảnh đính kèm
+    if image_path and os.path.exists(image_path):
+        with open(image_path, "rb") as img_file:
+            b64_data = base64.b64encode(img_file.read()).decode("utf-8")
+        
+        ext = Path(image_path).suffix.lower().replace(".", "")
+        mime = f"image/{'jpeg' if ext in ['jpg', 'jpeg'] else ext}"
+        
+        user_content = [
+            {"type": "text", "text": message or "Hãy phân tích chi tiết hình ảnh này."},
+            {
+                "type": "image_url",
+                "image_url": {"url": f"data:{mime};base64,{b64_data}"}
+            }
+        ]
+    else:
+        user_content = message
+
     def event_generator():
         full_content = ""
         try:
             for message_chunk, metadata in agent.stream(
-                {"messages": [HumanMessage(content=message)]},
+                {"messages": [HumanMessage(content=user_content)]},
                 config=config,
                 stream_mode="messages"
             ):
@@ -216,7 +251,7 @@ def api_chat_stream(
                 if text_chunk:
                     full_content += text_chunk
                     yield f"data: {json.dumps({'chunk': text_chunk})}\n\n"
-                    time.sleep(0.02)  # Nhịp mượt văn bản
+                    time.sleep(0.02)
 
             if full_content.strip():
                 save_chat_message(user_id_str, thread_id, role="assistant", content=full_content)
