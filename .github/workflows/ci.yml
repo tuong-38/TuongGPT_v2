@@ -7,7 +7,7 @@ on:
     branches: [ main, master ]
 
 jobs:
-  test-and-lint:
+  build-and-test:
     runs-on: ubuntu-latest
 
     steps:
@@ -28,12 +28,13 @@ jobs:
 
       - name: Lint with flake8
         run: |
-          # Quét lỗi cú pháp, biến chưa khai báo
+          # Kiểm tra lỗi syntax hoặc biến chưa định nghĩa
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=venv,.venv,chroma_db,uploads
 
       - name: Run Unit Tests with pytest
         env:
-          JWT_SECRET_KEY: super_secret_test_key_ci_pipeline_2026
+          DATABASE_URL: sqlite:///./test_ci.db
+          JWT_SECRET_KEY: mock_secret_key_ci_testing_2026
           JWT_ALGORITHM: HS256
           ACCESS_TOKEN_EXPIRE_MINUTES: 30
         run: |
