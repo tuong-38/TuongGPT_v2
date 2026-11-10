@@ -1,4 +1,4 @@
-name: TuongGPT v2 CI Pipeline
+name: TuongGPT v2 CI
 
 on:
   push:
@@ -14,28 +14,26 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: 'pip'
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Install dependencies
+      - name: Build runtime image
         run: |
-          python -m pip install --upgrade pip
-          pip install flake8 pytest
-          pip install -r requirements.txt
+          docker build --target runtime -t tuonggpt-v2:runtime .
 
-      - name: Lint with flake8
+      - name: Build test image
         run: |
-          # Kiểm tra lỗi syntax hoặc biến chưa định nghĩa
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=venv,.venv,chroma_db,uploads
+          docker build --target test -t tuonggpt-v2:test .
 
-      - name: Run Unit Tests with pytest
-        env:
-          DATABASE_URL: sqlite:///./test_ci.db
-          JWT_SECRET_KEY: mock_secret_key_ci_testing_2026
-          JWT_ALGORITHM: HS256
-          ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      - name: Run Flake8 checks
         run: |
-          pytest tests/
+          docker run --rm tuonggpt-v2:test flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=venv,.venv,chroma_db,uploads
+
+      - name: Run unit tests
+        run: |
+          docker run --rm \
+            -e DATABASE_URL="sqlite:///./test_ci.db" \
+            -e JWT_SECRET_KEY="mock_secret_key_ci_testing_2026" \
+            -e JWT_ALGORITHM="HS256" \
+            -e ACCESS_TOKEN_EXPIRE_MINUTES="30" \
+            tuonggpt-v2:test pytest tests/

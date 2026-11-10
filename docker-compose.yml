@@ -1,0 +1,29 @@
+services:
+  web:
+    build: .
+    container_name: tuonggpt_v2_app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./uploads:/app/uploads
+    restart: always
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+
+  test:
+    container_name: tuonggpt_v2_tester
+    build:
+      context: .
+      target: test
+    environment:
+      DATABASE_URL: sqlite:///./test_ci.db
+      JWT_SECRET_KEY: local_test_secret_only
+      JWT_ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: "30"
+    command: ["pytest", "tests/"]

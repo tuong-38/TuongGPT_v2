@@ -50,6 +50,11 @@ Path("uploads/images").mkdir(parents=True, exist_ok=True)
 Path("templates").mkdir(exist_ok=True)
 
 
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
+
+
 # --- Schemas xác thực ---
 class AuthRequest(BaseModel):
     username: str

@@ -1,62 +1,112 @@
-# 🚀 TuongGPT v2 - Full-Stack Multi-Tenant Agentic AI Platform
+# TuongGPT v2
 
-**TuongGPT v2** is an enterprise-ready, multi-tenant Agentic AI web platform built with **FastAPI**, **LangChain / LangGraph**, **Google Gemini 3.x**, and **Supabase (PostgreSQL + pgvector)**. The platform features end-to-end multimodal vision understanding, real-time web search with Tavily, secure JWT authentication, persistent multi-user session storage, and an automated CI/CD pipeline powered by GitHub Actions.
+TuongGPT v2 is a FastAPI chat application with a LangGraph agent, Google Gemini, Tavily search, document retrieval, and PostgreSQL-backed conversations. The web interface is served from `templates/`.
 
----
+## Features
 
-## 🌟 Key Features
+- Chat responses streamed to the browser with Server-Sent Events (SSE).
+- Gemini-powered chat and image understanding.
+- Tavily web search and retrieval from uploaded documents.
+- JWT authentication and conversation storage in PostgreSQL.
+- Docker images for local runtime and CI checks.
 
-* **🤖 Autonomous Agentic Workflow**: Dynamic task routing via LangGraph / ReAct agent, combining retrieval-augmented generation and automated web searches via the **Tavily Search API**.
-* **👁️ Multimodal Vision Support**: Direct image upload and visual analysis (diagrams, math formulas, screenshots) powered by **Gemini 3.5 Flash-Lite** and **Gemini 3.6 Flash**.
-* **🔐 Multi-Tenant Enterprise Security**:
-  * Secure password hashing with **Bcrypt**.
-  * Stateless token authentication via **JWT (JSON Web Tokens)**.
-  * Strict multi-tenant isolation ensuring users access only their own sessions and data.
-* **💾 Persistent Chat Storage (Supabase PostgreSQL)**:
-  * Real-time persistence for conversation threads (`conversations`) and chat history (`chat_messages`).
-  * Instant session restoring and context switching across devices.
-  * Schema-ready support for user profiling and memory (`long_term_memory`).
-* **🎨 Modern UI & Low-Latency Streaming**:
-  * Token-by-token streaming via **Server-Sent Events (SSE)**.
-  * Mathematical expression rendering using **KaTeX** and rich Markdown support.
-* **⚙️ Automated CI/CD Pipeline**:
-  * Static syntax linting and quality inspection with **Flake8**.
-  * Automated Unit Testing with **Pytest** in isolated GitHub Actions runners.
-  * Production deployment ready for **Render** and **Railway** via `Procfile`.
+## Requirements
 
----
+- Docker with the Docker Compose plugin, or Python 3.11 and pip.
+- A PostgreSQL database for application use.
+- Google AI and Tavily API keys for AI and search features.
 
-## 🛠️ Tech Stack & Dependencies
+## Configure environment variables
 
-* **Backend Runtime**: Python 3.11, FastAPI, Uvicorn, SQLAlchemy, Pydantic v2
-* **Agent Framework**: LangChain, LangGraph, LangSmith Tracing
-* **LLM Engine**: Google Gemini API (`gemini-3.5-flash-lite`, `gemini-3.6-flash`, `gemini-3.7-flash`)
-* **Embedding Model**: Google Generative AI (`gemini-embedding-001`)
-* **Database**: PostgreSQL hosted on Supabase
-* **Search Engine**: Tavily AI Search API
-* **Frontend**: Vanilla HTML5, CSS3, JavaScript (ES6+), KaTeX, FontAwesome
-* **DevOps & Testing**: Pytest, Flake8, GitHub Actions, Render Cloud
+Copy `.env.example` to `.env`, then replace its placeholder values with your own. In PowerShell:
 
----
+```powershell
+Copy-Item .env.example .env
+```
 
-## 📁 Project Structure
+In macOS/Linux:
+
+```sh
+cp .env.example .env
+```
+
+Set a long, random `JWT_SECRET_KEY`. `DATABASE_URL` must point to a PostgreSQL database. Keep `.env` private; it is excluded from Git and Docker build context. LangSmith settings are optional.
+
+## Run with Docker Compose
+
+Build and start the web application:
+
+```sh
+docker compose up --build -d web
+```
+
+Open [http://localhost:8000](http://localhost:8000). The health check is available at [http://localhost:8000/health](http://localhost:8000/health). Check service status and logs with:
+
+```sh
+docker compose ps
+docker compose logs -f web
+```
+
+Stop the application with `docker compose down`.
+
+Run the tests in the separate test image. This uses SQLite and a test-only JWT key; it does not need your PostgreSQL or API credentials:
+
+```sh
+docker compose run --rm test
+```
+
+## Run locally with Python
+
+Create and activate a Python 3.11 virtual environment, then install dependencies:
+
+```sh
+python -m venv .venv
+```
+
+Windows PowerShell:
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+macOS/Linux:
+
+```sh
+source .venv/bin/activate
+```
+
+Install and start the app:
+
+```sh
+pip install -r requirements.txt
+uvicorn main:app --reload --host 127.0.0.1 --port 8000
+```
+
+Run tests separately with `pytest tests/` after installing pytest (`pip install pytest`).
+
+## CI and deployment
+
+GitHub Actions runs on pushes and pull requests targeting `main` or `master`. It builds both Docker targets, runs selected Flake8 error checks, and runs the tests in the test image. This workflow is continuous integration (CI); it does not publish an image or deploy the application. `Procfile` provides a start command for platforms that support that format; deployment must be configured separately on the chosen platform.
+
+## Project structure
 
 ```text
-TuongGPT_v2/
-├── .github/
-│   └── workflows/
-│       └── ci.yml               # Automated CI/CD pipeline configuration
-├── static/                      # Static assets (CSS, JS)
-├── templates/
-│   └── index.html               # Frontend interface (Chat, Sidebar, Vision, KaTeX)
-├── tests/
-│   └── test_auth.py             # Unit tests for Authentication & JWT verification
-├── uploads/                     # Temporary folder for file/image uploads (Git-ignored)
-├── auth.py                      # Password hashing, token creation, and auth dependencies
-├── database.py                  # SQLAlchemy models, session engine, and Supabase client
-├── main.py                      # FastAPI application, REST endpoints, and SSE stream
-├── rag.py                       # Document parsing, chunking, and embedding logic
-├── Procfile                     # Cloud process file for Render / Railway deployment
-├── requirements.txt             # Python production dependencies
-├── .gitignore                   # Ignores environment variables, databases, and local artifacts
-└── README.md                    # Project documentation
+.
+├── .github/workflows/ci.yml  # Build and verification workflow
+├── templates/index.html      # Web interface
+├── tests/test_auth.py        # Authentication tests
+├── main.py                   # FastAPI routes, including /health
+├── auth.py                   # Password and JWT helpers
+├── database.py               # SQLAlchemy models and database access
+├── agent.py                  # LangGraph agent setup
+├── rag.py                    # Document retrieval
+├── Dockerfile                # Runtime and test build targets
+├── docker-compose.yml        # Local web and test services
+├── .dockerignore             # Files excluded from Docker build context
+├── .env.example              # Environment variable template
+└── Procfile                  # Platform process start command
+```
+
+## License
+
+See [LICENSE](LICENSE).
